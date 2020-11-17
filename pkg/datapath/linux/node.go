@@ -550,11 +550,25 @@ func (n *linuxNodeHandler) insertNeighbor(newNode *nodeTypes.Node, ifaceName str
 		return
 	}
 
-	ciliumIPv4 := newNode.GetNodeIP(false)
+	ciliumIPv4 := newNode.GetNodeIP(false).To4()
 	scopedLog := log.WithFields(logrus.Fields{
 		logfields.Interface: ifaceName,
 		logfields.IPAddr:    ciliumIPv4,
 	})
+
+	routes, err := netlink.RouteGet(ciliumIPv4)
+	if err != nil {
+		scopedLog.WithError(err).Error("Failed to retrieve route for remote node IP")
+		return
+	}
+	for _, route := range routes {
+		if route.Gw != nil {
+			// newNode is in a different L2 subnet, so it must be reachable through
+			// a gateway. Send arping to the gw IP addr instead of newNode IP addr.
+			copy(ciliumIPv4[:], route.Gw)
+			break
+		}
+	}
 
 	iface, err := net.InterfaceByName(ifaceName)
 	if err != nil {

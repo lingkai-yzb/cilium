@@ -527,6 +527,11 @@ enum {
 #define	CB_ENCRYPT_DST		CB_CT_STATE	/* Alias, non-overlapping,
 						 * Not used by xfrm.
 						 */
+#define CB_BE_ADDR_V4		CB_SVC_ADDR_V4   /* Alias, non-overlapping */
+#define CB_BE_ADDR_V6_1		CB_SVC_ADDR_V6_1 /* Alias, non-overlapping */
+#define CB_BE_ADDR_V6_2		CB_SVC_ADDR_V6_2 /* Alias, non-overlapping */
+#define CB_BE_ADDR_V6_3		CB_SVC_ADDR_V6_3 /* Alias, non-overlapping */
+#define CB_BE_ADDR_V6_4		CB_SVC_ADDR_V6_4 /* Alias, non-overlapping */
 };
 
 /* State values for NAT46 */

@@ -24,6 +24,7 @@ import (
 	"io"
 	"reflect"
 	"testing"
+	"time"
 
 	v1 "github.com/cilium/cilium/pkg/hubble/api/v1"
 	"github.com/stretchr/testify/assert"
@@ -91,6 +92,81 @@ func BenchmarkTimeLibRingRead(b *testing.B) {
 		a[i], _ = e.(*v1.Event)
 		i++
 	})
+}
+
+func BenchmarkReadBufferNoReaders(b *testing.B) {
+	benchmarkRingBuffer(b, benchmarkRingBufferOptions{})
+}
+
+func BenchmarkReadBufferOneReader(b *testing.B) {
+	benchmarkRingBuffer(b, benchmarkRingBufferOptions{
+		readers: 1,
+	})
+}
+
+func BenchmarkReadBufferEightReaders(b *testing.B) {
+	benchmarkRingBuffer(b, benchmarkRingBufferOptions{
+		readers: 8,
+	})
+}
+
+type benchmarkRingBufferOptions struct {
+	capacity capacity
+	readers  int
+}
+
+// benchmarkRingBuffer benchmarks RingBuffer's writes and reads with multiple
+// readers.
+func benchmarkRingBuffer(b *testing.B, options benchmarkRingBufferOptions) {
+	b.ReportAllocs()
+
+	if options.capacity == capacity(0) {
+		options.capacity = benchmarkCapacity
+	}
+
+	r := NewRing(options.capacity)
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	readerEventsReceived := make(chan int, options.readers)
+	for i := 0; i < options.readers; i++ {
+		rr := NewRingReader(r, 0)
+		go func() {
+			// Count the number of events received and report them over a
+			// channel.
+			eventsReceived := 0
+			for {
+				if rr.NextFollow(ctx) == nil {
+					readerEventsReceived <- eventsReceived
+					return
+				}
+				eventsReceived++
+			}
+		}()
+	}
+
+	event := &v1.Event{}
+
+	b.ResetTimer()
+
+	// Write the same event b.N+1 times. The extra event is needed as the last
+	// written event is not available for reading.
+	for i := 0; i < b.N+1; i++ {
+		r.Write(event)
+	}
+
+	time.Sleep(time.Second)
+
+	// Cancel all readers.
+	cancel()
+
+	// Collect results from all readers.
+	for i := 0; i < options.readers; i++ {
+		// Ensure that all readers received all events.
+		eventsReceived := <-readerEventsReceived
+		assert.Equal(b, b.N, eventsReceived)
+	}
+	close(readerEventsReceived)
 }
 
 func TestNewCapacity(t *testing.T) {

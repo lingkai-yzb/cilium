@@ -610,6 +610,22 @@ var _ = Describe("K8sDatapathConfig", func() {
 		})
 	})
 
+	Context("Debug", func() {
+		It("Check connectivity with debugging of the BPF compilation process enabled", func() {
+			deploymentManager.DeployCilium(map[string]string{
+				"debug.verbose": "datapath-compile",
+			}, DeployCiliumOptionsAndDNS)
+
+			ciliumPods, err := kubectl.GetCiliumPods()
+			Expect(err).To(BeNil(), "Cannot get cilium pods")
+			for _, pod := range ciliumPods {
+				kubectl.Logs(helpers.CiliumNamespace, pod).ExpectContains("Enabling BPF compilation process debug", "BPF compilation process is not enabled")
+			}
+
+			Expect(testPodConnectivityAcrossNodes(kubectl)).Should(BeTrue(), "Connectivity test between nodes failed")
+		})
+	})
+
 	Context("Etcd", func() {
 		It("Check connectivity", func() {
 			deploymentManager.Deploy(helpers.CiliumNamespace, StatelessEtcd)

@@ -379,7 +379,8 @@ func compileDatapath(ctx context.Context, dirs *directoryInfo, isHost, debug boo
 
 // Compile compiles a BPF program generating an object file.
 func Compile(ctx context.Context, src string, out string) error {
-	debug := option.Config.BPFCompilationDebug
+	debug := option.Config.BPFCompilationDebug || option.Config.Opts.IsEnabled(option.DebugCompile)
+
 	prog := progInfo{
 		Source:     src,
 		Output:     out,
@@ -396,11 +397,13 @@ func Compile(ctx context.Context, src string, out string) error {
 
 // compileTemplate compiles a BPF program generating a template object file.
 func compileTemplate(ctx context.Context, out string, isHost bool) error {
+	debug := option.Config.BPFCompilationDebug || option.Config.Opts.IsEnabled(option.DebugCompile)
+
 	dirs := directoryInfo{
 		Library: option.Config.BpfDir,
 		Runtime: option.Config.StateDir,
 		Output:  out,
 		State:   out,
 	}
-	return compileDatapath(ctx, &dirs, isHost, option.Config.BPFCompilationDebug, log)
+	return compileDatapath(ctx, &dirs, isHost, debug, log)
 }

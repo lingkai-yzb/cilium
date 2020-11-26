@@ -84,11 +84,12 @@ import (
 
 const (
 	// list of supported verbose debug groups
-	argDebugVerboseFlow     = "flow"
-	argDebugVerboseKvstore  = "kvstore"
-	argDebugVerboseEnvoy    = "envoy"
-	argDebugVerboseDatapath = "datapath"
-	argDebugVerbosePolicy   = "policy"
+	argDebugVerboseFlow            = "flow"
+	argDebugVerboseKvstore         = "kvstore"
+	argDebugVerboseEnvoy           = "envoy"
+	argDebugVerboseDatapath        = "datapath"
+	argDebugVerboseDatapathCompile = "datapath-compile"
+	argDebugVerbosePolicy          = "policy"
 
 	apiTimeout   = 60 * time.Second
 	daemonSubsys = "daemon"
@@ -228,7 +229,8 @@ func init() {
 	flags.String(option.CGroupRoot, "", "Path to Cgroup2 filesystem")
 	option.BindEnv(option.CGroupRoot)
 
-	flags.Bool(option.BPFCompileDebugName, false, "Enable debugging of the BPF compilation process")
+	flags.Bool(option.BPFCompileDebugName, false, "Enable debugging of the BPF compilation process. Deprecated in favor of --debug-verbose=datapath-compile")
+	flags.MarkDeprecated(option.BPFCompileDebugName, "This option will be removed in v1.11")
 	option.BindEnv(option.BPFCompileDebugName)
 
 	flags.Bool(option.SockopsEnableName, defaults.SockopsEnable, "Enable sockops when kernel supported")
@@ -963,6 +965,9 @@ func initEnv(cmd *cobra.Command) {
 		case argDebugVerboseDatapath:
 			log.Debugf("Enabling datapath debug messages")
 			debugDatapath = true
+		case argDebugVerboseDatapathCompile:
+			log.Debugf("Enabling BPF compilation process debug")
+			option.Config.Opts.SetBool(option.DebugCompile, true)
 		case argDebugVerbosePolicy:
 			option.Config.Opts.SetBool(option.DebugPolicy, true)
 		default:

@@ -26,6 +26,7 @@ const (
 	ConntrackLocal      = "ConntrackLocal"
 	Conntrack           = "Conntrack"
 	Debug               = "Debug"
+	DebugCompile        = "DebugCompile"
 	DebugLB             = "DebugLB"
 	DebugPolicy         = "DebugPolicy"
 	DropNotify          = "DropNotification"
@@ -66,6 +67,11 @@ var (
 	specDebug = Option{
 		Define:      "DEBUG",
 		Description: "Enable debugging trace statements",
+	}
+
+	specDebugCompile = Option{
+		Define:      "COMPILE_DEBUG",
+		Description: "Enable debugging of the BPF compilation process",
 	}
 
 	specDebugLB = Option{

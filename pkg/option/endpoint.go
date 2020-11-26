@@ -20,6 +20,7 @@ var (
 		ConntrackLocal:      &specConntrackLocal,
 		Conntrack:           &specConntrack,
 		Debug:               &specDebug,
+		DebugCompile:        &specDebugCompile,
 		DebugLB:             &specDebugLB,
 		DebugPolicy:         &specDebugPolicy,
 		DropNotify:          &specDropNotify,

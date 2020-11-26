@@ -319,6 +319,48 @@ var _ = Describe("K8sDatapathConfig", func() {
 		})
 	})
 
+	Context("IPVLAN", func() {
+		BeforeEach(func() {
+			SkipIfIntegration(helpers.CIIntegrationEKS)
+			SkipIfIntegration(helpers.CIIntegrationFlannel)
+			SkipIfIntegration(helpers.CIIntegrationGKE)
+		})
+
+		It("Check connectivity with IPVLAN", func() {
+			options := map[string]string{
+				"tunnel":              "disabled",
+				"datapathMode":        "ipvlan",
+				"ipvlan.masterDevice": "eth0",
+			}
+			deploymentManager.DeployCilium(options, DeployCiliumOptionsAndDNS)
+
+			Expect(testPodConnectivityAcrossNodes(kubectl)).Should(BeTrue(), "Connectivity test between nodes failed")
+		})
+
+		It("Check connecitivity with IPVLAN in pure L3 mode", func() {
+			options := map[string]string{
+				"tunnel":               "disabled",
+				"autoDirectNodeRoutes": "true",
+				"datapathMode":         "ipvlan",
+				"ipvlan.masterDevice":  "eth0",
+				"installIptablesRules": "false",
+				"l7Proxy.enabled":      "false",
+			}
+			// Needed to bypass bug with masquerading when devices are set. See #12141.
+			if helpers.RunsWithKubeProxy() {
+				options["masquerade"] = "false"
+			}
+			deploymentManager.DeployCilium(options, DeployCiliumOptionsAndDNS)
+
+			Expect(testPodConnectivityAcrossNodes(kubectl)).Should(BeTrue(), "Connectivity test between nodes failed")
+			if helpers.RunsOnNetNextOr419Kernel() {
+				By("Test BPF masquerade")
+				Expect(testPodHTTPToOutside(kubectl, "http://google.com", false, false)).
+					Should(BeTrue(), "Connectivity test to http://google.com failed")
+			}
+		})
+	})
+
 	Context("AutoDirectNodeRoutes", func() {
 		BeforeEach(func() {
 			SkipIfIntegration(helpers.CIIntegrationFlannel)

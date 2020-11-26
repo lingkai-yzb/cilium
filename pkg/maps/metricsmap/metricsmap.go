@@ -31,6 +31,7 @@ import (
 )
 
 var (
+	OldMetrics *bpf.Map
 	// Metrics is the bpf metrics map
 	Metrics      *bpf.Map
 	log          = logging.DefaultLogger.WithField(logfields.LogSubsys, "map-metrics")
@@ -38,8 +39,10 @@ var (
 )
 
 const (
+	// MapName for old metrics map.
+	OldMapName = "cilium_metrics"
 	// MapName for metrics map.
-	MapName = "cilium_metrics"
+	MapName = "cilium_metrics_v2"
 	// MaxEntries is the maximum number of keys that can be present in the
 	// Metrics Map.
 	//
@@ -273,10 +276,39 @@ func SyncMetricsMap(ctx context.Context) error {
 	return nil
 }
 
+func importMetricsFromOldMap() error {
+	oldMetrics := map[bpf.MapKey]bpf.MapValue{}
+
+	callback := func(key bpf.MapKey, value bpf.MapValue) {
+		oldMetrics[key] = value
+	}
+
+	if err := OldMetrics.DumpWithCallback(callback); err != nil {
+		return fmt.Errorf("error dumping contents of map: %s\n", err)
+	}
+
+	// TODO
+
+	return nil
+}
+
 func init() {
 	possibleCpus = common.GetNumPossibleCPUs(log)
 
 	vs := make(Values, possibleCpus)
+
+	// TODO
+	OldMetrics = bpf.NewPerCPUHashMap(
+		OldMapName,
+		&Key{},
+		int(unsafe.Sizeof(Key{})),
+		&vs,
+		int(unsafe.Sizeof(Value{})),
+		possibleCpus,
+		MaxEntries,
+		0, 0,
+		bpf.ConvertKeyValue,
+	)
 
 	// Metrics is a mapping of all packet drops and forwards associated with
 	// the node on ingress/egress direction
@@ -291,4 +323,6 @@ func init() {
 		0, 0,
 		bpf.ConvertKeyValue,
 	)
+
+	importMetricsFromOldMap()
 }

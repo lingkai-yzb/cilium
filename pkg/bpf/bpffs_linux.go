@@ -78,7 +78,7 @@ func mapPathFromMountInfo(name string) string {
 			}
 		}
 
-		log.Fatal("Could not find BPF map root")
+		log.Fatalf("Could not find BPF map root for %s", name)
 	})
 
 	return filepath.Join(mountInfoPrefix, name)
